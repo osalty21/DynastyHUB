@@ -19,20 +19,20 @@
             text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.5);
         }
         #streams-container {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             justify-content: center;
         }
         .stream-wrapper {
             position: relative;
-            width: calc(50% - 10px);
             border: 2px solid #FF0000;
             box-shadow: 0 4px 6px rgba(255, 0, 0, 0.1);
+            aspect-ratio: 16 / 9;
         }
         .stream {
             width: 100%;
-            aspect-ratio: 16 / 9;
+            height: 100%;
         }
         .close-button, .favorite-button {
             position: absolute;
@@ -47,6 +47,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            z-index: 10;
         }
         .close-button {
             right: 10px;
@@ -122,6 +123,11 @@
         .offline {
             background-color: #FF0000;
         }
+        @media (max-width: 768px) {
+            #streams-container {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -161,7 +167,6 @@
 
         async function checkStreamStatus(channelName) {
             // Note: This is a mock function. In a real application, you would need to use Twitch API.
-            // For demonstration purposes, this returns a random status.
             return Math.random() > 0.5;
         }
 
@@ -190,12 +195,14 @@
                 `;
                 streamContainer.appendChild(streamWrapper);
                 document.getElementById('stream-input').value = '';
+                updateLayout();
             }
         }
 
         function removeStream(button) {
-            const streamWrapper = button.parentElement;
+            const streamWrapper = button.closest('.stream-wrapper');
             streamWrapper.remove();
+            updateLayout();
         }
 
         function toggleFavorite(button, channelName) {
@@ -211,8 +218,20 @@
             updateFavoritesList();
         }
 
-        // Initialize favorites
+        function updateLayout() {
+            const container = document.getElementById('streams-container');
+            const streamCount = container.children.length;
+            
+            if (streamCount <= 4) {
+                container.style.gridTemplateColumns = 'repeat(2, 1fr)';
+            } else {
+                container.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            }
+        }
+
+        // Initialize favorites and layout
         updateFavoritesList();
+        updateLayout();
     </script>
 </body>
 </html>
