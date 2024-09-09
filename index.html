@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DYNASTY HUB</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #000000;
+            color: #FFA500;
+        }
+        h1 {
+            color: #FFA500;
+            text-align: center;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.5);
+        }
+        #streams-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .stream-wrapper {
+            position: relative;
+            width: calc(50% - 10px);
+            border: 2px solid #FF0000;
+            box-shadow: 0 4px 6px rgba(255, 0, 0, 0.1);
+        }
+        .stream {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+        }
+        .close-button, .favorite-button {
+            position: absolute;
+            top: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .close-button {
+            right: 10px;
+            color: #FFA500;
+        }
+        .favorite-button {
+            left: 10px;
+            font-size: 20px;
+            color: #FFA500;
+        }
+        .favorite-button.active {
+            background-color: #FFA500;
+            color: black;
+        }
+        #add-stream {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #stream-input {
+            padding: 5px;
+            width: 200px;
+            background-color: #1e1e1e;
+            border: 1px solid #FFA500;
+            color: #FFA500;
+            margin-right: 5px;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #FFA500;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #FFD700;
+        }
+        #favorites-tab {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #favorites-list {
+            display: none;
+        }
+        #favorites-toggle {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            padding: 10px 5px;
+            cursor: pointer;
+        }
+        .favorite-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .online {
+            background-color: #00FF00;
+        }
+        .offline {
+            background-color: #FF0000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dynasty Hub</h1>
+    <div id="add-stream">
+        <input type="text" id="stream-input" placeholder="Enter Twitch channel name">
+        <button onclick="addStream()">Add Stream</button>
+    </div>
+    <div id="streams-container"></div>
+    <div id="favorites-tab">
+        <div id="favorites-toggle" onclick="toggleFavorites()">Favorites</div>
+        <div id="favorites-list"></div>
+    </div>
+
+    <script>
+        let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+
+        function toggleFavorites() {
+            const list = document.getElementById('favorites-list');
+            list.style.display = list.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function updateFavoritesList() {
+            const favoritesList = document.getElementById('favorites-list');
+            favoritesList.innerHTML = '';
+            for (const favorite of favorites) {
+                const isOnline = await checkStreamStatus(favorite);
+                const item = document.createElement('div');
+                item.className = 'favorite-item';
+                item.innerHTML = `
+                    <span class="status-indicator ${isOnline ? 'online' : 'offline'}"></span>
+                    <button onclick="addStream('${favorite}')">${favorite}</button>
+                `;
+                favoritesList.appendChild(item);
+            }
+        }
+
+        async function checkStreamStatus(channelName) {
+            // Note: This is a mock function. In a real application, you would need to use Twitch API.
+            // For demonstration purposes, this returns a random status.
+            return Math.random() > 0.5;
+        }
+
+        function addStream(channelName = '') {
+            if (!channelName) {
+                channelName = document.getElementById('stream-input').value.trim();
+            }
+            if (channelName) {
+                const streamContainer = document.getElementById('streams-container');
+                const streamWrapper = document.createElement('div');
+                streamWrapper.className = 'stream-wrapper';
+                const isFavorite = favorites.includes(channelName);
+                streamWrapper.innerHTML = `
+                    <div class="stream">
+                        <iframe
+                            src="https://player.twitch.tv/?channel=${channelName}&parent=${window.location.hostname}"
+                            frameborder="0"
+                            allowfullscreen="true"
+                            scrolling="no"
+                            height="100%"
+                            width="100%">
+                        </iframe>
+                    </div>
+                    <button class="close-button" onclick="removeStream(this)">✖</button>
+                    <button class="favorite-button ${isFavorite ? 'active' : ''}" onclick="toggleFavorite(this, '${channelName}')">♥</button>
+                `;
+                streamContainer.appendChild(streamWrapper);
+                document.getElementById('stream-input').value = '';
+            }
+        }
+
+        function removeStream(button) {
+            const streamWrapper = button.parentElement;
+            streamWrapper.remove();
+        }
+
+        function toggleFavorite(button, channelName) {
+            const index = favorites.indexOf(channelName);
+            if (index > -1) {
+                favorites.splice(index, 1);
+                button.classList.remove('active');
+            } else {
+                favorites.push(channelName);
+                button.classList.add('active');
+            }
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+            updateFavoritesList();
+        }
+
+        // Initialize favorites
+        updateFavoritesList();
+    </script>
+</body>
+</html>
