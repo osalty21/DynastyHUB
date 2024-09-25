@@ -23,7 +23,6 @@
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             justify-content: center;
-            margin-bottom: 40px; /* Add space for the ticker */
         }
         .stream-wrapper {
             position: relative;
@@ -141,63 +140,6 @@
             padding: 0;
             margin: 10px 0;
         }
-        #score-ticker {
-            position: fixed;
-            left: 0;
-            right: 0;
-            height: 30px;
-            background-color: rgba(0, 0, 0, 0.8);
-            color: #FFA500;
-            overflow: hidden;
-            white-space: nowrap;
-            z-index: 1000;
-        }
-        #ticker-content {
-            position: absolute;
-            animation: ticker 120s linear infinite;
-        }
-        @keyframes ticker {
-            0% {
-                top: 100%;
-                left: 0;
-                transform: translateY(0);
-            }
-            25% {
-                top: 0;
-                left: 0;
-                transform: translateY(0);
-            }
-            26% {
-                top: 0;
-                left: 0;
-                transform: translateX(0);
-            }
-            50% {
-                top: 0;
-                left: 100%;
-                transform: translateX(-100%);
-            }
-            51% {
-                top: 0;
-                left: 100%;
-                transform: translateX(-100%);
-            }
-            75% {
-                top: 100%;
-                left: 100%;
-                transform: translate(-100%, -100%);
-            }
-            76% {
-                top: 100%;
-                left: 100%;
-                transform: translate(-100%, -100%);
-            }
-            100% {
-                top: 100%;
-                left: 0;
-                transform: translateY(-100%);
-            }
-        }
         @media (max-width: 768px) {
             #streams-container {
                 grid-template-columns: 1fr;
@@ -206,9 +148,6 @@
     </style>
 </head>
 <body>
-    <div id="score-ticker">
-        <div id="ticker-content"></div>
-    </div>
     <h1>Dynasty Hub</h1>
     <div id="add-stream">
         <input type="text" id="stream-input" placeholder="Enter Twitch channel name">
@@ -224,7 +163,7 @@
         <div id="donation-content">
             <p>Support Dynasty Hub!</p>
             <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
-            <script type='text/javascript'>kofiwidget2.init('Support Me on Ko-fi', '#FFA500', 'osalty21');kofiwidget2.draw();</script>
+            <script type='text/javascript'>kofiwidget2.init('Support Me on Ko-fi', '#FFA500', 'Your_Ko-fi_Username');kofiwidget2.draw();</script>
         </div>
     </div>
 
@@ -320,30 +259,10 @@
             }
         }
 
-        function updateScoreTicker() {
-            // This is where you'd normally fetch data from a sports API
-            // For this example, we'll use placeholder data
-            const games = [
-                "NFL: Patriots 24 - 21 Bills",
-                "NFL: Packers 17 - 14 Bears",
-                "NCAA: Alabama 35 - 28 Auburn",
-                "NCAA: Ohio State 42 - 35 Michigan",
-                "NFL: Cowboys 31 - 28 Eagles",
-                "NCAA: Clemson 24 - 17 South Carolina"
-            ];
-
-            const tickerContent = document.getElementById('ticker-content');
-            tickerContent.innerHTML = games.join(' &nbsp;&nbsp;&bull;&nbsp;&nbsp; ');
-        }
-
         // Initialize favorites, layout, and donation
         updateFavoritesList();
         updateLayout();
         toggleDonation(); // This will ensure the donation content is hidden initially
-
-        // Update the ticker every 60 seconds
-        updateScoreTicker();
-        setInterval(updateScoreTicker, 60000);
     </script>
 </body>
 </html>
