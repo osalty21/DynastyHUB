@@ -84,11 +84,9 @@
         button:hover {
             background-color: #FFD700;
         }
-        #favorites-tab {
+        #favorites-tab, #donation-tab {
             position: fixed;
-            top: 50%;
             right: 0;
-            transform: translateY(-50%);
             background-color: #1e1e1e;
             padding: 10px;
             border-top-left-radius: 10px;
@@ -97,14 +95,23 @@
             max-height: 80vh;
             overflow-y: auto;
         }
-        #favorites-list {
+        #favorites-tab {
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        #donation-tab {
+            top: calc(50% + 120px);
+            transform: translateY(-50%);
+        }
+        #favorites-list, #donation-content {
             display: none;
         }
-        #favorites-toggle {
+        #favorites-toggle, #donation-toggle {
             writing-mode: vertical-rl;
             text-orientation: mixed;
             padding: 10px 5px;
             cursor: pointer;
+            color: #FFA500;
         }
         .favorite-item {
             display: flex;
@@ -122,6 +129,22 @@
         }
         .offline {
             background-color: #FF0000;
+        }
+        #donation-content {
+            padding: 10px;
+            text-align: center;
+        }
+        .donate-button {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #FFA500;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .donate-button:hover {
+            background-color: #FFD700;
         }
         @media (max-width: 768px) {
             #streams-container {
@@ -141,6 +164,13 @@
         <div id="favorites-toggle" onclick="toggleFavorites()">Favorites</div>
         <div id="favorites-list"></div>
     </div>
+    <div id="donation-tab">
+        <div id="donation-toggle" onclick="toggleDonation()">Donate</div>
+        <div id="donation-content">
+            <p>Support Dynasty Hub!</p>
+            <a href="https://www.buymeacoffee.com/yourusername" target="_blank" class="donate-button">Buy me a coffee</a>
+        </div>
+    </div>
 
     <script>
         let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
@@ -148,6 +178,11 @@
         function toggleFavorites() {
             const list = document.getElementById('favorites-list');
             list.style.display = list.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function toggleDonation() {
+            const content = document.getElementById('donation-content');
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
         }
 
         async function updateFavoritesList() {
@@ -229,9 +264,10 @@
             }
         }
 
-        // Initialize favorites and layout
+        // Initialize favorites, layout, and donation
         updateFavoritesList();
         updateLayout();
+        toggleDonation(); // This will ensure the donation content is hidden initially
     </script>
 </body>
 </html>
