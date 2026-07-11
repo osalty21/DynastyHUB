@@ -69,6 +69,7 @@
             flex: 1;
             min-height: 0;
             display: flex;
+            max-height: calc(100vh - 160px);
         }
         #streams-container {
             flex: 1;
@@ -89,6 +90,7 @@
             box-shadow: 0 4px 6px rgba(255, 0, 0, 0.1);
             min-width: 0;
             min-height: 0;
+            max-height: 100%;
             flex: 1;
             display: flex;
         }
@@ -172,7 +174,7 @@
             width: 100%;
         }
 
-        #favorites-tab, #donation-tab {
+        #favorites-tab {
             position: fixed;
             right: 0;
             background-color: #1e1e1e;
@@ -183,19 +185,13 @@
             max-height: 80vh;
             overflow-y: auto;
             z-index: 30;
-        }
-        #favorites-tab {
             top: 50%;
             transform: translateY(-50%);
         }
-        #donation-tab {
-            top: calc(50% + 120px);
-            transform: translateY(-50%);
-        }
-        #favorites-list, #donation-content {
+        #favorites-list {
             display: none;
         }
-        #favorites-toggle, #donation-toggle {
+        #favorites-toggle {
             writing-mode: vertical-rl;
             text-orientation: mixed;
             padding: 10px 5px;
@@ -219,17 +215,6 @@
         .offline {
             background-color: #FF0000;
         }
-        #donation-content {
-            padding: 10px;
-            text-align: center;
-        }
-        #donation-content iframe {
-            border: none;
-            background-color: transparent !important;
-            padding: 0;
-            margin: 10px 0;
-        }
-
         /* --- Mobile / tablet: stack rows vertically, allow scroll instead of squeezing too small --- */
         @media (max-width: 768px) {
             body {
@@ -267,14 +252,6 @@
         <div id="favorites-toggle" onclick="toggleFavorites()">Favorites</div>
         <div id="favorites-list"></div>
     </div>
-    <div id="donation-tab">
-        <div id="donation-toggle" onclick="toggleDonation()">Donate</div>
-        <div id="donation-content">
-            <p>Support Dynasty Hub!</p>
-            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
-            <script type='text/javascript'>kofiwidget2.init('Support Me on Ko-fi', '#FFA500', 'osalty21');kofiwidget2.draw();</script>
-        </div>
-    </div>
 
     <script>
         let favorites = [];
@@ -296,11 +273,6 @@
         function toggleFavorites() {
             const list = document.getElementById('favorites-list');
             list.style.display = list.style.display === 'none' || !list.style.display ? 'block' : 'none';
-        }
-
-        function toggleDonation() {
-            const content = document.getElementById('donation-content');
-            content.style.display = content.style.display === 'none' || !content.style.display ? 'block' : 'none';
         }
 
         async function updateFavoritesList() {
@@ -325,7 +297,7 @@
 
         function computeRows(count) {
             // Decide how many rows/cols based on stream count, similar spirit to old updateLayout()
-            if (count === 0) return [];
+            if (count === 0) return { rows: [], cols: 0 };
             let cols;
             if (count <= 2) cols = count;
             else if (count <= 4) cols = 2;
@@ -335,11 +307,11 @@
             for (let i = 0; i < count; i += cols) {
                 rows.push(streams.slice(i, i + cols));
             }
-            return rows;
+            return { rows, cols };
         }
 
         function resetLayout() {
-            const rows = computeRows(streams.length);
+            const { rows } = computeRows(streams.length);
             rowFlex = rows.map(() => 1);
             colFlex = rows.map(row => row.map(() => 1));
             render();
@@ -377,7 +349,8 @@
         function render() {
             const container = document.getElementById('streams-container');
             container.innerHTML = '';
-            const rows = computeRows(streams.length);
+            const { rows, cols } = computeRows(streams.length);
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
             let globalIndex = 0;
 
             rows.forEach((row, rowIdx) => {
@@ -386,6 +359,15 @@
                 rowEl.style.flexGrow = rowFlex[rowIdx] ?? 1;
                 rowEl.dataset.rowIndex = rowIdx;
 
+                // If this row has fewer boxes than a full row, cap their width so they
+                // match the size of boxes in a full row instead of stretching wide
+                // (which pillarboxes the 16:9 Twitch player). Skip on mobile, where
+                // rows stack vertically and full width is correct.
+                const isPartialRow = !isMobile && cols > 0 && row.length < cols;
+                if (isPartialRow) {
+                    rowEl.style.justifyContent = 'center';
+                }
+
                 row.forEach((channelName, colIdx) => {
                     const idx = globalIndex; // capture for closures
                     const wrapper = document.createElement('div');
@@ -393,6 +375,9 @@
                     wrapper.style.flexGrow = (colFlex[rowIdx] && colFlex[rowIdx][colIdx]) ?? 1;
                     wrapper.dataset.rowIndex = rowIdx;
                     wrapper.dataset.colIndex = colIdx;
+                    if (isPartialRow) {
+                        wrapper.style.maxWidth = `calc(${100 / cols}% - 10px)`;
+                    }
 
                     const isFavorite = favorites.includes(channelName);
 
@@ -529,8 +514,15 @@
 
         // Initialize
         updateFavoritesList();
-        toggleDonation(); // hide donation content initially
         render();
+
+        // Re-render on resize (debounced) so partial-row sizing adapts correctly
+        // if the window crosses the mobile breakpoint (e.g. rotating a tablet).
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(render, 150);
+        });
     </script>
 </body>
 </html>
