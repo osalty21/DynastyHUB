@@ -5,34 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynasty Hub</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
             background-color: #000000;
             color: #FFA500;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
         h1 {
             color: #FFA500;
             text-align: center;
             font-size: 2.5em;
             text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.5);
+            margin-top: 0;
+        }
+        #add-stream {
+            margin-bottom: 15px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #stream-input {
+            padding: 8px;
+            width: 200px;
+            background-color: #1e1e1e;
+            border: 1px solid #FFA500;
+            color: #FFA500;
+        }
+        button {
+            padding: 8px 14px;
+            background-color: #FFA500;
+            color: black;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #FFD700;
+        }
+        #reset-layout {
+            background-color: #1e1e1e;
+            color: #FFA500;
+            border: 1px solid #FFA500;
+        }
+        #reset-layout:hover {
+            background-color: #2a2a2a;
+        }
+
+        /* --- Main grid area fills remaining viewport height --- */
+        #streams-outer {
+            flex: 1;
+            min-height: 0;
+            display: flex;
         }
         #streams-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            justify-content: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+        .stream-row {
+            display: flex;
+            flex: 1;
+            gap: 10px;
+            min-height: 0;
         }
         .stream-wrapper {
             position: relative;
             border: 2px solid #FF0000;
             box-shadow: 0 4px 6px rgba(255, 0, 0, 0.1);
-            aspect-ratio: 16 / 9;
+            min-width: 0;
+            min-height: 0;
+            flex: 1;
+            display: flex;
         }
         .stream {
             width: 100%;
             height: 100%;
+        }
+        .stream iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
         .close-button, .favorite-button {
             position: absolute;
@@ -48,6 +115,7 @@
             justify-content: center;
             align-items: center;
             z-index: 10;
+            padding: 0;
         }
         .close-button {
             right: 10px;
@@ -62,28 +130,48 @@
             background-color: #FFA500;
             color: black;
         }
-        #add-stream {
-            margin-bottom: 20px;
-            text-align: center;
+
+        /* --- Drag handles --- */
+        .resize-handle {
+            position: absolute;
+            z-index: 20;
+            touch-action: none;
         }
-        #stream-input {
-            padding: 5px;
-            width: 200px;
-            background-color: #1e1e1e;
-            border: 1px solid #FFA500;
-            color: #FFA500;
-            margin-right: 5px;
+        .resize-handle.col {
+            top: 0;
+            right: -6px;
+            width: 12px;
+            height: 100%;
+            cursor: col-resize;
         }
-        button {
-            padding: 5px 10px;
+        .resize-handle.row {
+            left: 0;
+            bottom: -6px;
+            width: 100%;
+            height: 12px;
+            cursor: row-resize;
+        }
+        .resize-handle:hover::after,
+        .resize-handle.active::after {
+            content: '';
+            position: absolute;
             background-color: #FFA500;
-            color: white;
-            border: none;
-            cursor: pointer;
         }
-        button:hover {
-            background-color: #FFD700;
+        .resize-handle.col:hover::after,
+        .resize-handle.col.active::after {
+            top: 0;
+            left: 5px;
+            width: 2px;
+            height: 100%;
         }
+        .resize-handle.row:hover::after,
+        .resize-handle.row.active::after {
+            left: 0;
+            top: 5px;
+            height: 2px;
+            width: 100%;
+        }
+
         #favorites-tab, #donation-tab {
             position: fixed;
             right: 0;
@@ -94,6 +182,7 @@
             box-shadow: -2px 0 5px rgba(0,0,0,0.5);
             max-height: 80vh;
             overflow-y: auto;
+            z-index: 30;
         }
         #favorites-tab {
             top: 50%;
@@ -140,9 +229,26 @@
             padding: 0;
             margin: 10px 0;
         }
+
+        /* --- Mobile / tablet: stack rows vertically, allow scroll instead of squeezing too small --- */
         @media (max-width: 768px) {
-            #streams-container {
-                grid-template-columns: 1fr;
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.6em;
+            }
+            #streams-outer {
+                overflow-y: auto;
+            }
+            .stream-row {
+                flex-direction: column;
+            }
+            .resize-handle.col {
+                display: none;
+            }
+            .resize-handle.row {
+                display: block;
             }
         }
     </style>
@@ -152,8 +258,11 @@
     <div id="add-stream">
         <input type="text" id="stream-input" placeholder="Enter Twitch channel name">
         <button onclick="addStream()">Add Stream</button>
+        <button id="reset-layout" onclick="resetLayout()">Reset Layout</button>
     </div>
-    <div id="streams-container"></div>
+    <div id="streams-outer">
+        <div id="streams-container"></div>
+    </div>
     <div id="favorites-tab">
         <div id="favorites-toggle" onclick="toggleFavorites()">Favorites</div>
         <div id="favorites-list"></div>
@@ -168,16 +277,30 @@
     </div>
 
     <script>
-        let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        let favorites = [];
+        try {
+            favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        } catch (e) {
+            favorites = [];
+        }
+
+        // streams is a flat list of channel names; layout is computed as rows.
+        let streams = [];
+        // rowFlex[i] = flex-grow value for row i
+        // colFlex[i] = array of flex-grow values for the wrappers within row i
+        let rowFlex = [];
+        let colFlex = [];
+
+        const MAX_COLS = 3; // matches previous "3 per row when >4" behavior, tune as needed
 
         function toggleFavorites() {
             const list = document.getElementById('favorites-list');
-            list.style.display = list.style.display === 'none' ? 'block' : 'none';
+            list.style.display = list.style.display === 'none' || !list.style.display ? 'block' : 'none';
         }
 
         function toggleDonation() {
             const content = document.getElementById('donation-content');
-            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+            content.style.display = content.style.display === 'none' || !content.style.display ? 'block' : 'none';
         }
 
         async function updateFavoritesList() {
@@ -200,69 +323,214 @@
             return Math.random() > 0.5;
         }
 
+        function computeRows(count) {
+            // Decide how many rows/cols based on stream count, similar spirit to old updateLayout()
+            if (count === 0) return [];
+            let cols;
+            if (count <= 2) cols = count;
+            else if (count <= 4) cols = 2;
+            else cols = MAX_COLS;
+
+            const rows = [];
+            for (let i = 0; i < count; i += cols) {
+                rows.push(streams.slice(i, i + cols));
+            }
+            return rows;
+        }
+
+        function resetLayout() {
+            const rows = computeRows(streams.length);
+            rowFlex = rows.map(() => 1);
+            colFlex = rows.map(row => row.map(() => 1));
+            render();
+        }
+
         function addStream(channelName = '') {
             if (!channelName) {
                 channelName = document.getElementById('stream-input').value.trim();
             }
             if (channelName) {
-                const streamContainer = document.getElementById('streams-container');
-                const streamWrapper = document.createElement('div');
-                streamWrapper.className = 'stream-wrapper';
-                const isFavorite = favorites.includes(channelName);
-                streamWrapper.innerHTML = `
-                    <div class="stream">
-                        <iframe
-                            src="https://player.twitch.tv/?channel=${channelName}&parent=${location.hostname}"
-                            frameborder="0"
-                            allowfullscreen="true"
-                            scrolling="no"
-                            height="100%"
-                            width="100%">
-                        </iframe>
-                    </div>
-                    <button class="close-button" onclick="removeStream(this)">✖</button>
-                    <button class="favorite-button ${isFavorite ? 'active' : ''}" onclick="toggleFavorite(this, '${channelName}')">♥</button>
-                `;
-                streamContainer.appendChild(streamWrapper);
+                streams.push(channelName);
+                resetLayout();
                 document.getElementById('stream-input').value = '';
-                updateLayout();
             }
         }
 
-        function removeStream(button) {
-            const streamWrapper = button.closest('.stream-wrapper');
-            streamWrapper.remove();
-            updateLayout();
+        function removeStreamByIndex(index) {
+            streams.splice(index, 1);
+            resetLayout();
         }
 
-        function toggleFavorite(button, channelName) {
+        function toggleFavorite(channelName, btn) {
             const index = favorites.indexOf(channelName);
             if (index > -1) {
                 favorites.splice(index, 1);
-                button.classList.remove('active');
+                btn.classList.remove('active');
             } else {
                 favorites.push(channelName);
-                button.classList.add('active');
+                btn.classList.add('active');
             }
             localStorage.setItem('favorites', JSON.stringify(favorites));
             updateFavoritesList();
         }
 
-        function updateLayout() {
+        function render() {
             const container = document.getElementById('streams-container');
-            const streamCount = container.children.length;
-            
-            if (streamCount <= 4) {
-                container.style.gridTemplateColumns = 'repeat(2, 1fr)';
-            } else {
-                container.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            container.innerHTML = '';
+            const rows = computeRows(streams.length);
+            let globalIndex = 0;
+
+            rows.forEach((row, rowIdx) => {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'stream-row';
+                rowEl.style.flexGrow = rowFlex[rowIdx] ?? 1;
+                rowEl.dataset.rowIndex = rowIdx;
+
+                row.forEach((channelName, colIdx) => {
+                    const idx = globalIndex; // capture for closures
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'stream-wrapper';
+                    wrapper.style.flexGrow = (colFlex[rowIdx] && colFlex[rowIdx][colIdx]) ?? 1;
+                    wrapper.dataset.rowIndex = rowIdx;
+                    wrapper.dataset.colIndex = colIdx;
+
+                    const isFavorite = favorites.includes(channelName);
+
+                    const streamDiv = document.createElement('div');
+                    streamDiv.className = 'stream';
+                    const iframe = document.createElement('iframe');
+                    iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(channelName)}&parent=${location.hostname}`;
+                    iframe.setAttribute('frameborder', '0');
+                    iframe.setAttribute('allowfullscreen', 'true');
+                    iframe.setAttribute('scrolling', 'no');
+                    streamDiv.appendChild(iframe);
+                    wrapper.appendChild(streamDiv);
+
+                    const closeBtn = document.createElement('button');
+                    closeBtn.className = 'close-button';
+                    closeBtn.innerHTML = '&#10006;';
+                    closeBtn.onclick = () => removeStreamByIndex(idx);
+                    wrapper.appendChild(closeBtn);
+
+                    const favBtn = document.createElement('button');
+                    favBtn.className = 'favorite-button' + (isFavorite ? ' active' : '');
+                    favBtn.innerHTML = '&hearts;';
+                    favBtn.onclick = () => toggleFavorite(channelName, favBtn);
+                    wrapper.appendChild(favBtn);
+
+                    // Column resize handle (between this wrapper and the next one in the row)
+                    if (colIdx < row.length - 1) {
+                        const colHandle = document.createElement('div');
+                        colHandle.className = 'resize-handle col';
+                        colHandle.addEventListener('pointerdown', (e) => startColResize(e, rowIdx, colIdx));
+                        wrapper.appendChild(colHandle);
+                    }
+
+                    rowEl.appendChild(wrapper);
+                    globalIndex++;
+                });
+
+                // Row resize handle (between this row and the next row) — attach to last wrapper in row
+                if (rowIdx < rows.length - 1 && rowEl.lastElementChild) {
+                    const rowHandle = document.createElement('div');
+                    rowHandle.className = 'resize-handle row';
+                    rowHandle.addEventListener('pointerdown', (e) => startRowResize(e, rowIdx));
+                    rowEl.lastElementChild.appendChild(rowHandle);
+                }
+
+                container.appendChild(rowEl);
+            });
+        }
+
+        // --- Drag-to-resize logic ---
+        let dragState = null;
+
+        function startColResize(e, rowIdx, colIdx) {
+            e.preventDefault();
+            const rowEl = document.querySelector(`.stream-row[data-row-index="${rowIdx}"]`);
+            const wrappers = rowEl.querySelectorAll('.stream-wrapper');
+            const wrapperA = wrappers[colIdx];
+            const wrapperB = wrappers[colIdx + 1];
+            const rowRect = rowEl.getBoundingClientRect();
+
+            dragState = {
+                type: 'col',
+                rowIdx, colIdx,
+                startX: e.clientX,
+                rowWidth: rowRect.width,
+                startFlexA: colFlex[rowIdx][colIdx],
+                startFlexB: colFlex[rowIdx][colIdx + 1],
+                totalFlex: colFlex[rowIdx].reduce((a, b) => a + b, 0)
+            };
+            e.target.classList.add('active');
+            window.addEventListener('pointermove', onDragMove);
+            window.addEventListener('pointerup', onDragEnd);
+        }
+
+        function startRowResize(e, rowIdx) {
+            e.preventDefault();
+            const container = document.getElementById('streams-container');
+            const containerRect = container.getBoundingClientRect();
+
+            dragState = {
+                type: 'row',
+                rowIdx,
+                startY: e.clientY,
+                containerHeight: containerRect.height,
+                startFlexA: rowFlex[rowIdx],
+                startFlexB: rowFlex[rowIdx + 1],
+                totalFlex: rowFlex.reduce((a, b) => a + b, 0)
+            };
+            e.target.classList.add('active');
+            window.addEventListener('pointermove', onDragMove);
+            window.addEventListener('pointerup', onDragEnd);
+        }
+
+        function onDragMove(e) {
+            if (!dragState) return;
+            const MIN_FLEX = 0.25;
+
+            if (dragState.type === 'col') {
+                const dx = e.clientX - dragState.startX;
+                const deltaFlex = (dx / dragState.rowWidth) * dragState.totalFlex;
+                let newA = dragState.startFlexA + deltaFlex;
+                let newB = dragState.startFlexB - deltaFlex;
+                if (newA < MIN_FLEX) { newB -= (MIN_FLEX - newA); newA = MIN_FLEX; }
+                if (newB < MIN_FLEX) { newA -= (MIN_FLEX - newB); newB = MIN_FLEX; }
+                colFlex[dragState.rowIdx][dragState.colIdx] = newA;
+                colFlex[dragState.rowIdx][dragState.colIdx + 1] = newB;
+
+                const rowEl = document.querySelector(`.stream-row[data-row-index="${dragState.rowIdx}"]`);
+                const wrappers = rowEl.querySelectorAll('.stream-wrapper');
+                wrappers[dragState.colIdx].style.flexGrow = newA;
+                wrappers[dragState.colIdx + 1].style.flexGrow = newB;
+            } else if (dragState.type === 'row') {
+                const dy = e.clientY - dragState.startY;
+                const deltaFlex = (dy / dragState.containerHeight) * dragState.totalFlex;
+                let newA = dragState.startFlexA + deltaFlex;
+                let newB = dragState.startFlexB - deltaFlex;
+                if (newA < MIN_FLEX) { newB -= (MIN_FLEX - newA); newA = MIN_FLEX; }
+                if (newB < MIN_FLEX) { newA -= (MIN_FLEX - newB); newB = MIN_FLEX; }
+                rowFlex[dragState.rowIdx] = newA;
+                rowFlex[dragState.rowIdx + 1] = newB;
+
+                const rowEls = document.querySelectorAll('.stream-row');
+                rowEls[dragState.rowIdx].style.flexGrow = newA;
+                rowEls[dragState.rowIdx + 1].style.flexGrow = newB;
             }
         }
 
-        // Initialize favorites, layout, and donation
+        function onDragEnd() {
+            dragState = null;
+            document.querySelectorAll('.resize-handle.active').forEach(h => h.classList.remove('active'));
+            window.removeEventListener('pointermove', onDragMove);
+            window.removeEventListener('pointerup', onDragEnd);
+        }
+
+        // Initialize
         updateFavoritesList();
-        updateLayout();
-        toggleDonation(); // This will ensure the donation content is hidden initially
+        toggleDonation(); // hide donation content initially
+        render();
     </script>
 </body>
 </html>
